@@ -1,0 +1,196 @@
+#!/usr/bin/env python
+# -*- coding: UTF-8 -*-
+
+import rospy
+# タイマのライブラリ
+import time
+# USBシリアルのライブラリ
+import serial
+# I2Cのライブラリ
+import smbus
+from eggsystem.msg import Servo		#　配列を送るメッセージファイル
+
+#--------------------------class--------------------------------------
+
+class serialcommunication(object):
+    def __init__(self):
+        self._sub = rospy.Subscriber('movedata', Servo, self.callback, queue_size=1)
+
+        #-----シリアルポートの定義----------------------------------------
+        self.com = serial.Serial(
+          port = "/dev/ttyUSB0",
+          baudrate = 115200,
+          parity = serial.PARITY_EVEN,
+          bytesize = serial.EIGHTBITS,
+          stopbits = serial.STOPBITS_ONE,
+          timeout = None,
+          xonxoff = False,
+        )
+
+
+        #-----各サーボのID---------------------------------------------
+        #左後ろ脚のサーボのID
+        self.left_back_leg = "\x85"
+        #右後ろ車輪のサーボのID
+        self.left_back_wheel = "\x81"
+        #左前脚のサーボのID
+        self.left_front_leg = "\x86"
+        #左前車輪のサーボのID
+        self.left_front_wheel = "\x82"
+        #右後ろ脚のサーボのID
+        self.right_back_leg = "\x87"
+        #右後ろ車輪のサーボのID
+        self.right_back_wheel = "\x83"
+        #右前脚のサーボのID
+        self.right_front_leg = "\x88"
+        #右前車輪のサーボのID
+        self.right_front_wheel = "\x84"
+        #中央サーボのID
+        self.center_servo = "\x89"
+
+
+        #-----脚サーボの初期値-----------------------------------------
+        #左後ろ脚の初期値
+        self.pos_lbl = 7500
+        #左前ろ脚の初期値
+        self.pos_lfl = 7500
+        #右後ろ脚の初期値
+        self.pos_rbl = 7500
+        #右前脚の初期値
+        self.pos_rfl = 7500
+        #-----車輪サーボの初期値---------------------------------------
+        #左後ろ車輪の初期値
+        self.pos_lbw = 7500
+        #左前ろ車輪の初期値
+        self.pos_lfw = 7500
+        #右後ろ車輪の初期値
+        self.pos_rbw = 7500
+        #右前車輪の初期値
+        self.pos_rfw = 7500
+        #-----中央サーボの初期値---------------------------------------
+        self.pos_cs = 7150
+
+        #-----サーボのマスク値------------------------------------------
+        # サーボのPOS_Hのマスク値"0b1111111110000000"
+        self.mask_h = 65408
+        # サーボのPOS_Lのマスク値"0b0000000001111111"
+        self.mask_l = 127
+
+    def callback(self, data):
+        self.pos_lbw = data.Pulse[0]
+        self.pos_lfw = data.Pulse[1]
+        self.pos_rbw = data.Pulse[2]
+        self.pos_rfw = data.Pulse[3]
+        self.pos_lbl = data.Pulse[4]
+        self.pos_lfl = data.Pulse[5]
+        self.pos_rbl = data.Pulse[6]
+        self.pos_rfl = data.Pulse[7]
+        self.pos_cs = data.Pulse[8]
+        self.serial_output_1()
+        self.serial_output_2()
+        self.serial_output_3()
+        self.serial_output_4()
+        self.serial_output_5()
+        self.serial_output_6()
+        self.serial_output_7()
+        self.serial_output_8()
+        self.serial_output_9()
+
+    #--------------------- サーボに値を書き込む関数 ----------------------
+
+    #-----各サーボに値を書き込む(chr()は引数をasciiコードに変換)-----------
+    #サーボ1に値を書き込む関数(左後ろ車輪)
+    def serial_output_1(self):
+        pos_lbw_h = (self.pos_lbw & self.mask_h) >> 7
+        pos_lbw_l = self.pos_lbw & self.mask_l
+	#左後ろ車輪に値を書き込む
+        self.com.write(self.left_back_wheel + chr(pos_lbw_h) + chr(pos_lbw_l))
+        time.sleep(0.001)
+        return self.pos_lbw
+
+    #サーボ2に値を書き込む関数(左前車輪)
+    def serial_output_2(self):
+        #左前車輪のマスク処理
+        pos_lfw_h = (self.pos_lfw & self.mask_h) >> 7
+        pos_lfw_l = self.pos_lfw & self.mask_l
+        #左前車輪に値を書き込む
+        self.com.write(self.left_front_wheel + chr(pos_lfw_h) + chr(pos_lfw_l))
+        time.sleep(0.001)
+	return self.pos_lfw
+
+    #サーボ3に値を書き込む関数(右後ろ車輪)
+    def serial_output_3(self):
+        #右後ろ車輪のマスク処理
+        pos_rbw_h = (self.pos_rbw & self.mask_h) >> 7
+        pos_rbw_l = self.pos_rbw & self.mask_l
+        #右後ろ車輪に値を書き込む
+        self.com.write(self.right_back_wheel + chr(pos_rbw_h) + chr(pos_rbw_l))
+        time.sleep(0.001)
+        return self.pos_rbw
+
+    #サーボ4に値を書き込む関数(右前車輪)
+    def serial_output_4(self):
+        #右前車輪のマスク処理
+        pos_rfw_h = (self.pos_rfw & self.mask_h) >> 7
+        pos_rfw_l = self.pos_rfw & self.mask_l
+        #右前車輪に値を書き込む
+        self.com.write(self.right_front_wheel + chr(pos_rfw_h) + chr(pos_rfw_l))
+        time.sleep(0.001)
+        return self.pos_rfw
+
+    #サーボ5に値を書き込む関数(左後ろ脚)
+    def serial_output_5(self):
+        #左後ろ脚のマスク処理
+        pos_lbl_h = (self.pos_lbl & self.mask_h) >> 7
+        pos_lbl_l = self.pos_lbl & self.mask_l
+        #左後ろ脚に値を書き込む
+        self.com.write(self.left_back_leg + chr(pos_lbl_h) + chr(pos_lbl_l))
+        time.sleep(0.001)
+        return self.pos_lbl
+
+    #サーボ6に値を書き込む関数(右後ろ脚)
+    def serial_output_6(self):
+        #左前脚のマスク処理
+        pos_lfl_h = (self.pos_lfl & self.mask_h) >> 7
+        pos_lfl_l = self.pos_lfl & self.mask_l
+        #左前脚に値を書き込む
+        self.com.write(self.left_front_leg + chr(pos_lfl_h) + chr(pos_lfl_l))
+        time.sleep(0.001)
+        return self.pos_lfl
+
+    #サーボ7に値を書き込む関数(右後ろ脚)
+    def serial_output_7(self):
+        #右後ろ脚のマスク処理
+        pos_rbl_h = (self.pos_rbl & self.mask_h) >> 7
+        pos_rbl_l = self.pos_rbl & self.mask_l
+        #右後ろ脚に値を書き込む
+        self.com.write(self.right_back_leg + chr(pos_rbl_h) + chr(pos_rbl_l))
+        time.sleep(0.001)
+        return self.pos_rbl
+
+    #サーボ8に値を書き込む関数(右前脚)
+    def serial_output_8(self):
+        #右前脚のマスク処理
+        pos_rfl_h = (self.pos_rfl & self.mask_h) >> 7
+        pos_rfl_l = self.pos_rfl & self.mask_l
+        #右前脚に値を書き込む
+        self.com.write(self.right_front_leg + chr(pos_rfl_h) + chr(pos_rfl_l))
+        time.sleep(0.001)
+        return self.pos_rfl
+
+    #サーボ9に値を書き込む関数(中央サーボ)
+    def serial_output_9(self):
+        #中央サーボのマスク処理
+        pos_cs_h = (self.pos_cs & self.mask_h) >> 7
+        pos_cs_l = self.pos_cs & self.mask_l
+        #中央サーボに値を書き込む
+        self.com.write(self.center_servo + chr(pos_cs_h) + chr(pos_cs_l))
+        time.sleep(0.001)
+        return self.pos_cs
+
+
+if __name__ == '__main__':
+    rospy.init_node('move_sub')
+    move_sub = serialcommunication()
+    rospy.spin()
+
